@@ -6,38 +6,65 @@
     <title>Siyahbeyazfc - Menajerlik Paneli</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        body { background-color: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; padding: 20px; }
         .header { border-bottom: 3px solid #fff; padding-bottom: 10px; margin-bottom: 20px; }
-        .card { background: #1a1a1a; border-radius: 10px; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .pos { background: #fff; color: #000; padding: 5px; font-weight: bold; border-radius: 5px; min-width: 30px; }
+        .container { max-width: 600px; margin: auto; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .pos { background: #fff; color: #000; padding: 5px 10px; font-weight: bold; border-radius: 5px; min-width: 35px; }
+        .name { flex-grow: 1; text-align: left; margin-left: 15px; font-size: 1.1em; }
         .power { color: #f1c40f; font-weight: bold; }
+        .status { font-size: 0.8em; color: #888; }
     </style>
 </head>
 <body>
+
+<div class="container">
     <div class="header">
         <h1>🦅 Siyahbeyazfc</h1>
-        <p id="takim-bilgi">Veriler yükleniyor...</p>
+        <p id="takim-bilgi">Kulüp Verileri Çekiliyor...</p>
     </div>
-    <div id="kadro-listesi">Sahaya çıkılıyor...</div>
 
-    <script>
-        const SUPABASE_URL = 'https://teyrakdvfqydhcnmwump.supabase.co';
-        const SUPABASE_KEY = 'Sb_publishable_nMeoN53F6t1BY4wU9x8q2g_Jb1ea8hj';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <h2>Kadro</h2>
+    <div id="kadro-listesi">Sahaya çıkılıyor, lütfen bekleyin...</div>
+</div>
 
-        async function yukle() {
-            const { data: takim } = await supabase.from('takimlar').select('*').eq('isim', 'Siyahbeyazfc').single();
-            if(takim) {
-                document.getElementById('takim-bilgi').innerText = `Bütçe: ${takim.butce.toLocaleString()} € | Puan: ${takim.puan}`;
-                const { data: oyuncular } = await supabase.from('oyuncular').select('*').eq('takim_id', takim.id);
+<script>
+    // BAĞLANTI ANAHTARLARIN
+    const SUPABASE_URL = 'https://teyrakdvfqydhcnmwump.supabase.co';
+    const SUPABASE_KEY = 'Sb_publishable_nMeoN53F6t1BY4wU9x8q2g_Jb1ea8hj';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function verileriGetir() {
+        // 1. Takım Bilgisini Al
+        const { data: takim, error: tError } = await supabase.from('takimlar').select('*').eq('isim', 'Siyahbeyazfc').single();
+        
+        if (takim) {
+            document.getElementById('takim-bilgi').innerText = `Bütçe: ${takim.butce.toLocaleString()} € | Puan: ${takim.puan}`;
+            
+            // 2. Oyuncuları Al
+            const { data: oyuncular, error: oError } = await supabase.from('oyuncular').select('*').eq('takim_id', takim.id).order('guc', { ascending: false });
+            
+            if (oyuncular && oyuncular.length > 0) {
                 let html = "";
                 oyuncular.forEach(o => {
-                    html += `<div class="card"><div class="pos">${o.mevki}</div><div>${o.isim}</div><div class="power">${o.guc}</div></div>`;
+                    html += `
+                        <div class="card">
+                            <div class="pos">${o.mevki}</div>
+                            <div class="name">${o.isim} <br><span class="status">Yaş: ${o.yas} | Potansiyel: %${o.potansiyel}</span></div>
+                            <div class="power">Güç: ${o.guc}</div>
+                        </div>
+                    `;
                 });
                 document.getElementById('kadro-listesi').innerHTML = html;
+            } else {
+                document.getElementById('kadro-listesi').innerHTML = "Henüz oyuncu bulunamadı. Supabase'den SQL kodunu çalıştırmayı unutma!";
             }
+        } else {
+            document.getElementById('takim-bilgi').innerText = "Takım bulunamadı. Lütfen Supabase SQL Editor'den takımı ekle.";
         }
-        yukle();
-    </script>
+    }
+
+    verileriGetir();
+</script>
 </body>
 </html>
